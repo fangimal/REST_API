@@ -4,6 +4,7 @@ import (
 	"REST_API/internal/user"
 	"REST_API/pkg/logging"
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -30,6 +31,20 @@ func (d *db) Create(ctx context.Context, user user.User) (string, error) {
 	return "", fmt.Errorf("failed to convert objectid to hex. probably oid: %s", oid)
 }
 
+func (d *db) FindAll(ctx context.Context) (u []user.User, err error) {
+
+	cursor, err := d.collection.Find(ctx, bson.M{})
+	if cursor.Err() != nil {
+		return u, fmt.Errorf("failed to find one user by id. id: due to error %v", err)
+	}
+
+	if err = cursor.All(ctx, &u); err != nil {
+		return u, fmt.Errorf("failed to read all documents from cursor. error: %v", err)
+	}
+
+	return u, nil
+}
+
 func (d *db) FindOne(ctx context.Context, id string) (u user.User, err error) {
 	oid, err := bson.ObjectIDFromHex(id)
 	if err != nil {
@@ -39,7 +54,10 @@ func (d *db) FindOne(ctx context.Context, id string) (u user.User, err error) {
 
 	result := d.collection.FindOne(ctx, filter)
 	if result.Err() != nil {
-		//TODO 404
+		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
+			//TODO ErrEntityNotFound
+			return u, fmt.Errorf("not found")
+		}
 		return u, fmt.Errorf("failed to find one user by id. id: %s due to error %v", id, err)
 	}
 	if err = result.Decode(&u); err != nil {
@@ -48,12 +66,63 @@ func (d *db) FindOne(ctx context.Context, id string) (u user.User, err error) {
 	return u, nil
 }
 
-func (d *db) Update(ctx context.Context, user string) error {
-	panic("implement me")
+func (d *db) Update(ctx context.Context, user user.User) error {
+	objectId := user.ID
+	//if err != nil {
+	//	return fmt.Errorf("failed to convert user ID to objectid. ID: %s", user.ID)
+	//}
+	filter := bson.M{"_id": objectId}
+
+	userBytes, err := bson.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("failed to marshal user, error: %s", err.Error())
+	}
+
+	var updateUserObj bson.M
+	err = bson.Unmarshal(userBytes, &updateUserObj)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal user bytes, error: %s", err.Error())
+	}
+
+	delete(updateUserObj, "_id")
+
+	update := bson.M{
+		"$set": updateUserObj,
+	}
+
+	result, err := d.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to ececute update user query. error: %v", err)
+	}
+	if result.MatchedCount == 0 {
+		//TODO ErrEntityNotFound
+		return fmt.Errorf("not found")
+	}
+
+	d.logger.Tracef("Matched %d documentd and Modified %d documents", result.MatchedCount, result.ModifiedCount)
+
+	return nil
 }
 
 func (d *db) Delete(ctx context.Context, id string) error {
-	panic("implement me")
+	objectId, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("failed to convert user ID to objectid. ID: %s", id)
+	}
+	filter := bson.M{"_id": objectId}
+
+	result, err := d.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to execute  query. error %v", err)
+	}
+	if result.DeletedCount == 0 {
+		//TODO ErrEntityNotFound
+		return fmt.Errorf("not found")
+	}
+
+	d.logger.Tracef("Deleted %d documents ", result.DeletedCount)
+
+	return nil
 }
 
 func NewStorage(database *mongo.Database, collection string, logger *logging.Logger) user.Storage {

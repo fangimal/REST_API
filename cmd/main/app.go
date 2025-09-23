@@ -3,7 +3,10 @@ package main
 import (
 	"REST_API/internal/config"
 	"REST_API/internal/user"
+	"REST_API/internal/user/db"
+	"REST_API/pkg/client/mongodb"
 	"REST_API/pkg/logging"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -21,6 +24,18 @@ func main() {
 	router := httprouter.New()
 
 	cfg := config.GetConfig()
+
+	cfgMongo := cfg.MongoDB
+	mongoDBClient, err := mongodb.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
+		cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
+	if err != nil {
+		panic(err)
+	}
+	storage := db.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
+
+	//TODO for test
+	users, err := storage.FindAll(context.Background())
+	fmt.Println(users)
 
 	logger.Info("register user handler")
 	handler := user.NewHandler(logger)
