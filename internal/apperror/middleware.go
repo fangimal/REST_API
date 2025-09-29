@@ -9,10 +9,10 @@ type appHandler func(w http.ResponseWriter, r *http.Request) error
 
 func Middleware(h appHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		var appErr *AppError
 		err := h(w, r)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			if errors.As(err, &appErr) {
 				if errors.Is(err, ErrNotFound) {
 					w.WriteHeader(http.StatusNotFound)

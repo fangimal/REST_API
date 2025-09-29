@@ -2,7 +2,7 @@ package postgresql
 
 import (
 	"REST_API/internal/config"
-	"REST_API/pkg/utils"
+	"REST_API/pkg/repeatable"
 	"context"
 	"fmt"
 	"log"
@@ -22,7 +22,7 @@ type Client interface {
 
 func NewClient(ctx context.Context, maxAttempts int, sv config.StorageConfig) (pool *pgxpool.Pool, err error) {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", sv.Username, sv.Password, sv.Host, sv.Port, sv.Database)
-	err = utils.DoWithTries(func() error {
+	err = repeatable.DoWithTries(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
