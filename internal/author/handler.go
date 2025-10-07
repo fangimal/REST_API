@@ -32,11 +32,6 @@ func NewHandler(repository Repository, logger *logging.Logger) handlers.Handler 
 
 func (h *handler) Register(router *httprouter.Router) {
 	router.HandlerFunc(http.MethodGet, authorsURL, apperror.Middleware(h.GetList))
-	//router.HandlerFunc(http.MethodPost, authorsURL, apperror.Middleware(h.Createauthor))
-	//router.HandlerFunc(http.MethodGet, authorURL, apperror.Middleware(h.GetauthorByUUID))
-	//router.HandlerFunc(http.MethodPut, authorURL, apperror.Middleware(h.Updateauthor))
-	//router.HandlerFunc(http.MethodPatch, authorURL, apperror.Middleware(h.PartiallyUpdateauthor))
-	//router.HandlerFunc(http.MethodDelete, authorURL, apperror.Middleware(h.Deleteauthor))
 }
 
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) error {

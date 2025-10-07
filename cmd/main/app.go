@@ -3,8 +3,8 @@ package main
 import (
 	author2 "REST_API/internal/author"
 	"REST_API/internal/author/db"
+	book2 "REST_API/internal/book/db"
 	"REST_API/internal/config"
-	"REST_API/internal/user"
 	"REST_API/pkg/client/postgresql"
 	"REST_API/pkg/logging"
 	"context"
@@ -31,6 +31,16 @@ func main() {
 		logger.Fatal("%v", err)
 	}
 	repository := author.NewRepository(postgreSQLClient, logger)
+
+	bookRepository := book2.NewRepository(postgreSQLClient, logger)
+	books, err := bookRepository.FindAll(context.TODO())
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	for _, b := range books {
+		logger.Debug(b.Name)
+	}
 
 	//one, err := repository.FindOne(context.TODO(), "e459ef69-c63a-48ad-8b77-b089ffa43c58")
 	//if err != nil {
@@ -71,10 +81,6 @@ func main() {
 	logger.Info("register author handler")
 	authorHandler := author2.NewHandler(repository, logger)
 	authorHandler.Register(router)
-
-	logger.Info("register user handler")
-	handler := user.NewHandler(logger)
-	handler.Register(router)
 
 	start(router, cfg)
 }
