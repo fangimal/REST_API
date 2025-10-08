@@ -1,9 +1,9 @@
 package main
 
 import (
-	author2 "REST_API/internal/author"
-	"REST_API/internal/author/db"
-	book2 "REST_API/internal/book/db"
+	"REST_API/internal/author"
+	authorDB "REST_API/internal/author/db/postgresql"
+	"REST_API/internal/author/service"
 	"REST_API/internal/config"
 	"REST_API/pkg/client/postgresql"
 	"REST_API/pkg/logging"
@@ -28,58 +28,11 @@ func main() {
 
 	postgreSQLClient, err := postgresql.NewClient(context.TODO(), 3, cfg.Storage)
 	if err != nil {
-		logger.Fatal("%v", err)
+		logger.Fatalf("%v", err)
 	}
-	repository := author.NewRepository(postgreSQLClient, logger)
-
-	bookRepository := book2.NewRepository(postgreSQLClient, logger)
-	books, err := bookRepository.FindAll(context.TODO())
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	for _, b := range books {
-		logger.Debug(b.Name)
-	}
-
-	//one, err := repository.FindOne(context.TODO(), "e459ef69-c63a-48ad-8b77-b089ffa43c58")
-	//if err != nil {
-	//	return
-	//}
-	//logger.Info(one)
-
-	//newAth := author2.Author{
-	//	Name: "MIR",
-	//}
-	//err = repository.Create(context.TODO(), &newAth)
-	//if err != nil {
-	//	logger.Fatalf("%v", err)
-	//}
-	//logger.Infof("%v", newAth)
-
-	//all, err := repository.FindAll(context.TODO())
-	//if err != nil {
-	//	logger.Fatalf("%v", err)
-	//}
-	//
-	//for _, ath := range all {
-	//	logger.Infof("%v", ath)
-	//}
-
-	//cfgMongo := cfg.MongoDB
-	//mongoDBClient, err := mongodb.NewClient(context.Background(), cfgMongo.Host, cfgMongo.Port, cfgMongo.Username,
-	//	cfgMongo.Password, cfgMongo.Database, cfgMongo.AuthDB)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//storage := db.NewStorage(mongoDBClient, cfg.MongoDB.Collection, logger)
-
-	//TODO for test
-	//users, err := storage.FindAll(context.Background())
-	//fmt.Println(users)
-
-	logger.Info("register author handler")
-	authorHandler := author2.NewHandler(repository, logger)
+	repository := authorDB.NewRepository(postgreSQLClient, logger)
+	authorService := service.NewService(repository, logger)
+	authorHandler := author.NewHandler(authorService, logger)
 	authorHandler.Register(router)
 
 	start(router, cfg)
@@ -120,5 +73,5 @@ func start(router *httprouter.Router, cfg *config.Config) {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	logger.Fatal((server.Serve(listener)))
+	logger.Fatal(server.Serve(listener))
 }

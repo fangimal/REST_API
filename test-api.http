@@ -1,4 +1,21 @@
-GET http://localhost:1234/authors
+### Get author list with filter
+#########?field=lt/gt/lte/gte/eq:value
+GET http://localhost:1234/authors?age=lt:50&name=автор&is_alive=true&sort_by=age&sort_order=asc
+Content-Type: application/json
+
+### Get author pagination
+#########Get author page 1
+GET http://localhost:1234/authors?limit=5
+Content-Type: application/json
+
+### Get author pagination
+#########Get author page 2
+GET http://localhost:1234/authors?limit=5&ptoken=?
+Content-Type: application/json
+
+### Get author list with sorting
+#########sort_by=field&sort_order=asc/desc
+GET http://localhost:1234/authors?sort_by=age&sort_order=asc
 Content-Type: application/json
 
 ###

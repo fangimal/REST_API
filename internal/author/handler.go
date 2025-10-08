@@ -2,9 +2,10 @@ package author
 
 import (
 	"REST_API/internal/apperror"
+	service2 "REST_API/internal/author/service"
 	"REST_API/internal/handlers"
+	"REST_API/pkg/api/sort"
 	"REST_API/pkg/logging"
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -19,23 +20,28 @@ const (
 )
 
 type handler struct {
-	logger     *logging.Logger
-	repository Repository
+	logger  *logging.Logger
+	service *service2.Service
 }
 
-func NewHandler(repository Repository, logger *logging.Logger) handlers.Handler {
+func NewHandler(service *service2.Service, logger *logging.Logger) handlers.Handler {
 	return &handler{
-		repository: repository,
-		logger:     logger,
+		service: service,
+		logger:  logger,
 	}
 }
 
 func (h *handler) Register(router *httprouter.Router) {
-	router.HandlerFunc(http.MethodGet, authorsURL, apperror.Middleware(h.GetList))
+	router.HandlerFunc(http.MethodGet, authorsURL, sort.Middleware(apperror.Middleware(h.GetList), "created_at", sort.ASC))
 }
 
 func (h *handler) GetList(w http.ResponseWriter, r *http.Request) error {
-	all, err := h.repository.FindAll(context.TODO())
+	var sortOptions sort.Options
+	if options, ok := r.Context().Value(sort.OptionsContextKey).(sort.Options); ok {
+		sortOptions = options
+	}
+
+	all, err := h.service.GetAll(r.Context(), sortOptions)
 	if err != nil {
 		w.WriteHeader(400)
 		return err
@@ -51,32 +57,3 @@ func (h *handler) GetList(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
-
-//func (h *handler) Createauthor(w http.ResponseWriter, r *http.Request) error {
-//	return fmt.Errorf("this is API error")
-//}
-//
-//func (h *handler) GetauthorByUUID(w http.ResponseWriter, r *http.Request) error {
-//	return apperror.NewAppError(nil, "test", "test", "t13")
-//}
-//
-//func (h *handler) Updateauthor(w http.ResponseWriter, r *http.Request) error {
-//	w.WriteHeader(204)
-//	w.Write([]byte("this is update authors"))
-//
-//	return nil
-//}
-//
-//func (h *handler) PartiallyUpdateauthor(w http.ResponseWriter, r *http.Request) error {
-//	w.WriteHeader(204)
-//	w.Write([]byte("this is PartiallyUpdate authors"))
-//
-//	return nil
-//}
-//
-//func (h *handler) Deleteauthor(w http.ResponseWriter, r *http.Request) error {
-//	w.WriteHeader(204)
-//	w.Write([]byte("this is delete authors"))
-//
-//	return nil
-//}
